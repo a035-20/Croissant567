@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EscrowSnap</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <h1>EscrowSnap</h1>
+      <p class="tagline">Borgstelling voor freelancers in één minuut.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="card" aria-labelledby="new-title">
+      <h2 id="new-title">Nieuwe klus</h2>
+      <form id="job-form" novalidate>
+        <label>Omschrijving
+          <input name="title" type="text" maxlength="120" placeholder="Bijv. Logo ontwerpen" required>
+        </label>
+        <div class="row">
+          <label>Naam opdrachtgever
+            <input name="clientName" type="text" maxlength="80" required>
+          </label>
+          <label>Naam zzp'er
+            <input name="freelancerName" type="text" maxlength="80" required>
+          </label>
+        </div>
+        <label>Bedrag (€)
+          <input name="amount" type="text" inputmode="decimal" autocomplete="off" placeholder="250,00" required>
+        </label>
+        <button type="submit" class="primary">Klus aanmaken</button>
+        <p id="form-error" class="error" role="alert" hidden></p>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="jobs-title">
+      <h2 id="jobs-title">Klussen</h2>
+      <ul id="job-list" class="job-list"></ul>
+      <p id="empty" class="muted">Nog geen klussen. Maak hierboven je eerste klus aan.</p>
+    </section>
+
+    <section id="detail" class="card" aria-labelledby="detail-title" hidden>
+      <div class="detail-head">
+        <h2 id="detail-title"></h2>
+        <span id="detail-status" class="badge"></span>
+      </div>
+      <dl id="detail-meta" class="meta"></dl>
+
+      <div id="steps" class="steps" aria-label="Voortgang"></div>
+
+      <div id="actions" class="actions"></div>
+
+      <div id="proof-block" hidden>
+        <h3>Bewijsstuk</h3>
+        <div id="proof-view"></div>
+      </div>
+
+      <p class="note">
+        Demo: er wordt geen echt geld verplaatst. In een productieversie koppel je hier een betaalprovider
+        met een echte escrow-rekening.
+      </p>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="escrow.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
