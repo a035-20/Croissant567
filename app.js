@@ -22,7 +22,9 @@
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) return [];
+      // Beschadigde of gemanipuleerde items overslaan i.p.v. de hele pagina te breken.
+      return parsed.map(E.sanitizeJob).filter(Boolean);
     } catch (_) {
       return [];
     }
@@ -49,12 +51,6 @@
 
   const dateNl = (iso) =>
     iso ? new Date(iso).toLocaleString('nl-NL', { dateStyle: 'medium', timeStyle: 'short' }) : '';
-
-  function parseAmountToCents(raw) {
-    const normalized = String(raw ?? '').trim().replace(',', '.');
-    if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return NaN;
-    return Math.round(Number(normalized) * 100);
-  }
 
   function toast(message) {
     const t = $('#toast');
@@ -162,7 +158,7 @@
     }
 
     if (actions.includes('submit')) {
-      const fileInput = el('input', { type: 'file', accept: 'image/*,application/pdf' });
+      const fileInput = el('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp,image/gif,application/pdf' });
       fileInput.id = 'proof-input';
       box.append(
         el('p', { className: 'hint', textContent: 'Zzp\'er: upload een foto of document als bewijs dat het werk af is.' }),
@@ -171,6 +167,9 @@
           const file = fileInput.files && fileInput.files[0];
           if (!file) return toast('Kies eerst een bewijsstuk.');
           if (file.size > MAX_PROOF_BYTES) return toast('Bestand is groter dan 2 MB.');
+          if (!E.isAllowedProofType(file.type)) {
+            return toast('Alleen PNG, JPG, WebP, GIF of PDF zijn toegestaan.');
+          }
           const dataUrl = await readAsDataUrl(file);
           try {
             const updated = E.submitWork(
@@ -218,8 +217,13 @@
         el('span', { textContent: `${job.proof.name} · ${dateNl(job.proof.submittedAt)}` }),
       ]),
     ];
-    if (job.proof.dataUrl && job.proof.type.startsWith('image/')) {
-      children.push(el('img', { src: job.proof.dataUrl, alt: 'Bewijsstuk van opgeleverd werk' }));
+    const { dataUrl, type, name } = job.proof;
+    if (E.isSafeProofDataUrl(dataUrl, type)) {
+      if (type.startsWith('image/')) {
+        children.push(el('img', { src: dataUrl, alt: `Bewijsstuk: ${name}` }));
+      } else {
+        children.push(el('a', { href: dataUrl, download: name, textContent: 'Document downloaden' }));
+      }
     }
     view.replaceChildren(...children);
   }
@@ -259,7 +263,7 @@
     const errorEl = $('#form-error');
     errorEl.hidden = true;
 
-    const amountCents = parseAmountToCents(data.amount);
+    const amountCents = E.parseAmountToCents(data.amount);
     try {
       const job = E.createJob({
         id: newId(),

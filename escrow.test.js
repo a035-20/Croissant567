@@ -92,6 +92,39 @@ test('state-functies muteren het oorspronkelijke object niet', () => {
   assert.equal(JSON.stringify(concept), snapshot);
 });
 
+test('parseAmountToCents accepteert nl- en en-notatie', () => {
+  assert.equal(E.parseAmountToCents('250'), 25000);
+  assert.equal(E.parseAmountToCents('250,5'), 25050);
+  assert.equal(E.parseAmountToCents('250.50'), 25050);
+  assert.equal(E.parseAmountToCents('  0,01 '), 1);
+});
+
+test('parseAmountToCents weigert ongeldige invoer', () => {
+  for (const raw of ['', 'abc', '-5', '1,234', '1e3', '0x10', '1.2.3', null, undefined]) {
+    assert.ok(Number.isNaN(E.parseAmountToCents(raw)), `zou NaN moeten zijn voor ${raw}`);
+  }
+});
+
+test('isSafeProofDataUrl laat alleen bekende types toe', () => {
+  assert.equal(E.isSafeProofDataUrl('data:image/png;base64,AAAA', 'image/png'), true);
+  assert.equal(E.isSafeProofDataUrl('data:application/pdf;base64,AAAA', 'application/pdf'), true);
+  // Type klopt niet met de inhoud van de data-URL
+  assert.equal(E.isSafeProofDataUrl('data:text/html;base64,AAAA', 'image/png'), false);
+  // Onbekend of gevaarlijk type
+  assert.equal(E.isSafeProofDataUrl('data:image/svg+xml;base64,AAAA', 'image/svg+xml'), false);
+  assert.equal(E.isSafeProofDataUrl('javascript:alert(1)', 'image/png'), false);
+  assert.equal(E.isSafeProofDataUrl(null, 'image/png'), false);
+});
+
+test('sanitizeJob keurt beschadigde opslagobjecten af', () => {
+  const good = newJob();
+  assert.deepEqual(E.sanitizeJob(good), good);
+  assert.equal(E.sanitizeJob(null), null);
+  assert.equal(E.sanitizeJob({ ...good, status: 'hacked' }), null);
+  assert.equal(E.sanitizeJob({ ...good, amountCents: '250' }), null);
+  assert.equal(E.sanitizeJob({ ...good, title: '' }), null);
+});
+
 test('availableActions geeft per status de juiste acties', () => {
   let job = newJob();
   assert.deepEqual(E.availableActions(job), ['fund']);

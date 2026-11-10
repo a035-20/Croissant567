@@ -117,6 +117,42 @@
     if (!job || job.status !== expected) throw new EscrowError(message);
   }
 
+  /**
+   * Zet invoer zoals "250", "250,5" of "250.50" om naar centen.
+   * Geeft NaN bij ongeldige invoer (geen negatieve bedragen, max. 2 decimalen).
+   */
+  function parseAmountToCents(raw) {
+    const normalized = String(raw ?? '').trim().replace(',', '.');
+    if (!/^\d{1,9}(\.\d{1,2})?$/.test(normalized)) return NaN;
+    return Math.round(Number(normalized) * 100);
+  }
+
+  const ALLOWED_PROOF_TYPES = Object.freeze(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf']);
+
+  /**
+   * Alleen data-URL's van toegestane types mogen in de interface worden getoond of gedownload.
+   * Voorkomt dat een manipulatief opslagobject scripts of onbekende schema's injecteert.
+   */
+  function isAllowedProofType(type) {
+    return ALLOWED_PROOF_TYPES.includes(type);
+  }
+
+  function isSafeProofDataUrl(dataUrl, type) {
+    if (typeof dataUrl !== 'string' || !isAllowedProofType(type)) return false;
+    return dataUrl.startsWith(`data:${type};base64,`);
+  }
+
+  /** Controleert een opgeslagen klus; retourneert null als het object niet klopt. */
+  function sanitizeJob(value) {
+    if (!value || typeof value !== 'object') return null;
+    const isStatus = Object.values(STATUS).includes(value.status);
+    const amountOk = Number.isInteger(value.amountCents) && value.amountCents > 0;
+    const textsOk = ['id', 'title', 'clientName', 'freelancerName', 'createdAt', 'updatedAt']
+      .every((k) => typeof value[k] === 'string' && value[k].trim() !== '');
+    if (!isStatus || !amountOk || !textsOk) return null;
+    return value;
+  }
+
   const api = {
     STATUS,
     STATUS_LABEL,
@@ -126,6 +162,10 @@
     submitWork,
     approveWork,
     availableActions,
+    parseAmountToCents,
+    isAllowedProofType,
+    isSafeProofDataUrl,
+    sanitizeJob,
   };
 
   if (typeof module !== 'undefined' && module.exports) {
